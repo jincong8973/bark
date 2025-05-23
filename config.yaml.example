@@ -1,0 +1,10 @@
+gitlab:
+  token: "your-gitlab-token"
+  url: "https://your-gitlab-url"
+
+deepseek:
+  token: "your-deepseek-token"
+  url: "http://your-deepseek-url"
+
+server:
+  port: 8080 

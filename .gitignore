@@ -1,0 +1,16 @@
+# IDE
+.idea/
+.vscode/
+
+# 配置文件
+config.yaml
+
+# 日志文件
+*.log
+
+# 编译输出
+bark
+
+# 其他
+*.sql
+.DS_Store 
