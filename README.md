@@ -25,9 +25,7 @@ docker build -t bark .
 
 # 运行容器
 docker run -d \
-  -p 8080:8080 \
+  -p 18080:8080 \
   -v $(pwd)/config.yaml:/app/config.yaml \
-  -e BARK_GITLAB_TOKEN=your-token \
-  -e BARK_DEEPSEEK_TOKEN=your-token \
   bark
-``` 
+```
