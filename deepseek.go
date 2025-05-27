@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 )
 
@@ -27,7 +26,7 @@ type DeepSeekResponse struct {
 	} `json:"choices"`
 }
 
-func callDeepSeek(diff string) (string, error) {
+func callDeepSeek(prompt string) (string, error) {
 	config := GetConfig()
 	if config.DeepSeek.Token == "" {
 		return "", errors.New("DeepSeek token not set")
@@ -37,7 +36,7 @@ func callDeepSeek(diff string) (string, error) {
 		Model: config.DeepSeek.Model,
 		Messages: []DeepSeekMessage{
 			{Role: "system", Content: config.DeepSeek.Messages.System},
-			{Role: "user", Content: fmt.Sprintf(config.DeepSeek.Messages.User, diff)},
+			{Role: "user", Content: prompt},
 		},
 		Stream: false,
 	}

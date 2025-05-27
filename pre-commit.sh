@@ -4,6 +4,20 @@
 BARK_URL="http://localhost:8080"
 BARK_TOKEN=""
 
+# 显示进度条动画
+show_progress() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='|/-\'
+    local i=0
+    while ps -p $pid > /dev/null; do
+        i=$(( (i+1) %4 ))
+        printf "\r正在检查代码... [%c] " "${spinstr:$i:1}"
+        sleep $delay
+    done
+    printf "\r"
+}
+
 # 显示帮助信息
 show_help() {
     echo "Usage: $0 [options]"
@@ -35,16 +49,27 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# 获取暂存的文件列表
-FILES=$(git diff --cached --name-only --diff-filter=ACMR | tr '\n' ' ')
-
-if [ -z "$FILES" ]; then
-    echo "No files to check"
+# 获取暂存区的差异
+DIFF=$(git diff --cached)
+if [ -z "$DIFF" ]; then
+    echo "No changes to check"
     exit 0
 fi
 
-# 构建请求体
-JSON_DATA=$(echo "$FILES" | jq -R -s -c 'split(" ") | map(select(length > 0)) | {files: .}')
+# 构建 JSON 数据
+JSON_DATA=$(echo "$DIFF" | jq -R -s '{"diff": .}')
+
+# 验证 JSON 格式
+if ! echo "$JSON_DATA" | jq . > /dev/null 2>&1; then
+    echo "Error: Invalid JSON format"
+    echo "JSON data:"
+    echo "$JSON_DATA"
+    exit 1
+fi
+
+# 将 JSON 数据写入临时文件
+TEMP_JSON_DATA=$(mktemp)
+echo "$JSON_DATA" > "$TEMP_JSON_DATA"
 
 # 构建 curl 命令
 CURL_CMD="curl -s -X POST -H \"Content-Type: application/json\""
@@ -55,10 +80,22 @@ if [ -n "$BARK_TOKEN" ]; then
 fi
 
 # 发送请求到 bark 服务
-RESPONSE=$(eval "$CURL_CMD -d \"$JSON_DATA\" \"$BARK_URL/precommit\"")
+echo "Sending request to: $BARK_URL/precommit"
+RESPONSE=$(eval "$CURL_CMD -d @\"$TEMP_JSON_DATA\" \"$BARK_URL/precommit\"") &
+CURL_PID=$!
+
+# 显示进度条
+show_progress $CURL_PID
+
+# 等待请求完成
+wait $CURL_PID
+CURL_EXIT_CODE=$?
+
+# 清理临时文件
+rm -f "$TEMP_JSON_DATA"
 
 # 检查 curl 命令是否成功
-if [ $? -ne 0 ]; then
+if [ $CURL_EXIT_CODE -ne 0 ]; then
     echo "Error: Failed to connect to Bark service at $BARK_URL"
     exit 1
 fi

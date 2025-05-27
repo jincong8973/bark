@@ -9,7 +9,10 @@ type Config struct {
 		Token string `mapstructure:"token"`
 		URL   string `mapstructure:"url"`
 	} `mapstructure:"gitlab"`
-
+	Prompt struct {
+		MergeRequest string `mapstructure:"merge_request"`
+		Precommit    string `mapstructure:"precommit"`
+	} `mapstructure:"prompt"`
 	DeepSeek struct {
 		Token    string `mapstructure:"token"`
 		URL      string `mapstructure:"url"`

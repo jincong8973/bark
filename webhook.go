@@ -50,7 +50,7 @@ func handleWebhook(c *gin.Context) {
 		diffText += fmt.Sprintf("文件: %s\n行号: %s\n%s\n", change.NewPath, change.NewPath, change.Diff)
 	}
 
-	review, err := callDeepSeek(diffText)
+	review, err := callDeepSeek(fmt.Sprintf(config.Prompt.MergeRequest, diffText))
 	if err != nil {
 		fmt.Println("call deepseek failed", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "call deepseek failed"})
