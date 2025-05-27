@@ -1,15 +1,18 @@
-package main
+package api
 
 import (
 	"fmt"
 	"io"
 	"net/http"
 
+	"bark/config"
+	"bark/llm/deepseek"
+	"bark/thirdparty"
 	"github.com/gin-gonic/gin"
 	"github.com/xanzy/go-gitlab"
 )
 
-func handleWebhook(c *gin.Context) {
+func HandleWebhook(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
@@ -38,7 +41,7 @@ func handleWebhook(c *gin.Context) {
 	mrIID := mrEvent.ObjectAttributes.IID
 
 	// 获取 MR diff
-	changes, _, err := GetGitlabClient().MergeRequests.GetMergeRequestChanges(projectID, mrIID, nil)
+	changes, _, err := thirdparty.GetGitlabClient().MergeRequests.GetMergeRequestChanges(projectID, mrIID, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "get diff failed"})
 		return
@@ -50,7 +53,8 @@ func handleWebhook(c *gin.Context) {
 		diffText += fmt.Sprintf("文件: %s\n行号: %s\n%s\n", change.NewPath, change.NewPath, change.Diff)
 	}
 
-	review, err := callDeepSeek(fmt.Sprintf(config.Prompt.MergeRequest, diffText))
+	cfg := config.GetConfig()
+	review, err := deepseek.CallDeepSeek(fmt.Sprintf(cfg.Prompt.MergeRequest, diffText))
 	if err != nil {
 		fmt.Println("call deepseek failed", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "call deepseek failed"})
@@ -63,7 +67,7 @@ func handleWebhook(c *gin.Context) {
 	noteOpt := &gitlab.CreateMergeRequestNoteOptions{
 		Body: gitlab.String("由Deepseek生成:\n" + review),
 	}
-	_, _, err = GetGitlabClient().Notes.CreateMergeRequestNote(projectID, mrIID, noteOpt)
+	_, _, err = thirdparty.GetGitlabClient().Notes.CreateMergeRequestNote(projectID, mrIID, noteOpt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "comment failed"})
 		return

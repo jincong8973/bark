@@ -1,10 +1,12 @@
-package main
+package api
 
 import (
 	"fmt"
 	"net/http"
 	"strings"
 
+	"bark/config"
+	"bark/llm/deepseek"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,8 +19,8 @@ type PreCommitResponse struct {
 	Message string `json:"message"`
 }
 
-// handlePreCommit 处理 pre-commit 检查请求.
-func handlePreCommit(c *gin.Context) {
+// HandlePreCommit 处理 pre-commit 检查请求.
+func HandlePreCommit(c *gin.Context) {
 	var req PreCommitRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, PreCommitResponse{
@@ -52,8 +54,9 @@ func handlePreCommit(c *gin.Context) {
 
 // reviewCode 使用 DeepSeek 进行代码审查.
 func reviewCode(content string) (string, error) {
-	prompt := fmt.Sprintf(config.Prompt.Precommit, content)
-	response, err := callDeepSeek(prompt)
+	cfg := config.GetConfig()
+	prompt := fmt.Sprintf(cfg.Prompt.Precommit, content)
+	response, err := deepseek.CallDeepSeek(prompt)
 	if err != nil {
 		return "", err
 	}

@@ -1,24 +1,28 @@
-package main
+package deepseek
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"regexp"
+	"strings"
+
+	config2 "bark/config"
 )
 
-type DeepSeekMessage struct {
+type Message struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
 
-type DeepSeekRequest struct {
-	Model    string            `json:"model"`
-	Messages []DeepSeekMessage `json:"messages"`
-	Stream   bool              `json:"stream"`
+type Request struct {
+	Model    string    `json:"model"`
+	Messages []Message `json:"messages"`
+	Stream   bool      `json:"stream"`
 }
 
-type DeepSeekResponse struct {
+type Response struct {
 	Choices []struct {
 		Message struct {
 			Content string `json:"content"`
@@ -26,15 +30,20 @@ type DeepSeekResponse struct {
 	} `json:"choices"`
 }
 
-func callDeepSeek(prompt string) (string, error) {
-	config := GetConfig()
+func removeThinkProcess(content string) string {
+	re := regexp.MustCompile(`(?s)<think>.*?</think>`)
+	return strings.TrimSpace(re.ReplaceAllString(content, ""))
+}
+
+func CallDeepSeek(prompt string) (string, error) {
+	config := config2.GetConfig()
 	if config.DeepSeek.Token == "" {
 		return "", errors.New("DeepSeek token not set")
 	}
 
-	reqBody := DeepSeekRequest{
+	reqBody := Request{
 		Model: config.DeepSeek.Model,
-		Messages: []DeepSeekMessage{
+		Messages: []Message{
 			{Role: "system", Content: config.DeepSeek.Messages.System},
 			{Role: "user", Content: prompt},
 		},
@@ -49,12 +58,12 @@ func callDeepSeek(prompt string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	var dsResp DeepSeekResponse
+	var dsResp Response
 	if err := json.NewDecoder(resp.Body).Decode(&dsResp); err != nil {
 		return "", err
 	}
 	if len(dsResp.Choices) == 0 {
 		return "", errors.New("no response from DeepSeek")
 	}
-	return dsResp.Choices[0].Message.Content, nil
+	return removeThinkProcess(dsResp.Choices[0].Message.Content), nil
 }

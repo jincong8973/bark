@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"github.com/spf13/viper"
@@ -30,7 +30,7 @@ type Config struct {
 
 var config Config
 
-func initConfig(configPath string) error {
+func InitConfig(configPath string) error {
 	viper.SetConfigFile(configPath)
 	viper.AutomaticEnv()
 
