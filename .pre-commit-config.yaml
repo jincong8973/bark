@@ -1,0 +1,11 @@
+repos:
+  - repo: https://github.com/your-username/bark-pre-commit
+    rev: v1.0.0  # 使用实际的版本标签
+    hooks:
+      - id: bark-code-review
+        name: Bark Code Review
+        description: 使用 Bark 进行代码审查
+        args: []
+        env:
+          - BARK_URL=https://your-bark-service.com
+          - BARK_TOKEN=your-bark-token 

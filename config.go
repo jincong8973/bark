@@ -11,8 +11,13 @@ type Config struct {
 	} `mapstructure:"gitlab"`
 
 	DeepSeek struct {
-		Token string `mapstructure:"token"`
-		URL   string `mapstructure:"url"`
+		Token    string `mapstructure:"token"`
+		URL      string `mapstructure:"url"`
+		Model    string `mapstructure:"model"`
+		Messages struct {
+			System string `mapstructure:"system"`
+			User   string `mapstructure:"user"`
+		} `mapstructure:"messages"`
 	} `mapstructure:"deepseek"`
 
 	Server struct {

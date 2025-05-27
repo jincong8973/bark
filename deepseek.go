@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 )
 
@@ -33,10 +34,10 @@ func callDeepSeek(diff string) (string, error) {
 	}
 
 	reqBody := DeepSeekRequest{
-		Model: "deepseek-reasoner",
+		Model: config.DeepSeek.Model,
 		Messages: []DeepSeekMessage{
-			{Role: "system", Content: "你是一个专业的代码审查助手，请根据 diff 内容给出详细的代码 review 建议, 你再给出review建议的同时请给出相应的代码文件名称和行号。"},
-			{Role: "user", Content: "我们的服务主要使用Golang来编写,也有K8S Yaml,因为我们在实现K8S相关的配套服务.diff 内容如下：\n" + diff},
+			{Role: "system", Content: config.DeepSeek.Messages.System},
+			{Role: "user", Content: fmt.Sprintf(config.DeepSeek.Messages.User, diff)},
 		},
 		Stream: false,
 	}

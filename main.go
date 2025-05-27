@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 var rootCmd = &cobra.Command{
 	Use:   "bark",
 	Short: "Bark - GitLab MR Review Bot",
@@ -21,8 +20,9 @@ var rootCmd = &cobra.Command{
 
 		r := gin.Default()
 		r.POST("/webhook", handleWebhook)
-		port := fmt.Sprintf(":%d", GetConfig().Server.Port)
-		if err := r.Run(port); err != nil {
+		r.POST("/precommit", handlePreCommit)
+		addr := fmt.Sprintf("0.0.0.0:%d", GetConfig().Server.Port)
+		if err := r.Run(addr); err != nil {
 			fmt.Printf("服务启动失败: %v\n", err)
 			os.Exit(1)
 		}

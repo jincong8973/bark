@@ -4,7 +4,11 @@ gitlab:
 
 deepseek:
   token: "your-deepseek-token"
-  url: "http://your-deepseek-url"
+  url: "https://api.deepseek.com/chat/completions" 
+  model: "deepseek-reasoner"
+  messages:
+    system: "你是一个专业的代码审查助手，请根据 diff 内容给出详细的代码 review 建议, 你再给出review建议的同时请给出相应的代码文件名称和行号。"
+    user: "我们的服务主要使用Golang来编写,也有K8S Yaml,因为我们在实现K8S相关的配套服务.diff 内容如下：\n%s"
 
 server:
   port: 8080 

@@ -1,0 +1,8 @@
+- id: bark-code-review
+  name: Bark Code Review
+  description: 使用 Bark 进行代码审查
+  entry: pre-commit.sh
+  language: script
+  types: [file]
+  args: []
+  additional_dependencies: [jq] 
