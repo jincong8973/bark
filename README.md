@@ -32,16 +32,13 @@ pip install pre-commit
 2. 在项目根目录创建 `.pre-commit-config.yaml`：
 ```yaml
 repos:
-  - repo: https://github.com/your-username/bark-pre-commit
-    rev: v1.0.0  # 使用实际的版本标签
+  - repo: https://github.com/jincong8973/bark
+    rev: v0.0.1
     hooks:
       - id: bark-code-review
         name: Bark Code Review
         description: 使用 Bark 进行代码审查
-        args: []
-        env:
-          - BARK_URL=https://your-bark-service.com
-          - BARK_TOKEN=your-bark-token
+        args: ["--url", "https://your-bark-service.com", "--token", "your-bark-token"]
 ```
 
 3. 安装 pre-commit hooks：
