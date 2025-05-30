@@ -2,7 +2,7 @@ package thirdparty
 
 import (
 	config2 "bark/config"
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go"
 )
 
 var client *gitlab.Client
