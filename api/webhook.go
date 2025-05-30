@@ -8,8 +8,9 @@ import (
 	"bark/config"
 	"bark/llm/deepseek"
 	"bark/thirdparty"
+
 	"github.com/gin-gonic/gin"
-	"github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 func HandleWebhook(c *gin.Context) {
@@ -18,7 +19,8 @@ func HandleWebhook(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
 		return
 	}
-	event, err := gitlab.ParseWebhook(gitlab.EventTypeMergeRequest, body)
+
+	event, err := gitlab.ParseWebhook(gitlab.HookEventType(c.Request), body)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid webhook"})
 		return
@@ -31,9 +33,22 @@ func HandleWebhook(c *gin.Context) {
 
 	// 只在 MR 创建和更新时触发 review
 	state := mrEvent.ObjectAttributes.State
+	// doc : https://docs.gitlab.com/user/project/integrations/webhook_events/#merge-request-events
 	action := mrEvent.ObjectAttributes.Action
-	if state == "merged" && action == "merge" {
+
+	// 必须是打开状态的 MR 才进行审查.
+	if state != "opened" {
+		c.JSON(http.StatusOK, gin.H{"msg": "ignored state: " + state})
+		return
+	}
+
+	if action != "update" && action != "open" {
 		c.JSON(http.StatusOK, gin.H{"msg": "ignored action: merged"})
+		return
+	}
+
+	if action == "update" && mrEvent.ObjectAttributes.OldRev == "" {
+		c.JSON(http.StatusOK, gin.H{"msg": "update event without old revision, no code changes, ignored"})
 		return
 	}
 
@@ -41,7 +56,7 @@ func HandleWebhook(c *gin.Context) {
 	mrIID := mrEvent.ObjectAttributes.IID
 
 	// 获取 MR diff
-	changes, _, err := thirdparty.GetGitlabClient().MergeRequests.GetMergeRequestChanges(projectID, mrIID, nil)
+	changes, _, err := thirdparty.GetGitlabClient().MergeRequests.ListMergeRequestDiffs(projectID, mrIID, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "get diff failed"})
 		return
@@ -49,8 +64,16 @@ func HandleWebhook(c *gin.Context) {
 
 	// 拼接 diff 内容
 	var diffText string
-	for _, change := range changes.Changes {
-		diffText += fmt.Sprintf("文件: %s\n行号: %s\n%s\n", change.NewPath, change.NewPath, change.Diff)
+	for _, change := range changes {
+		status := "修改"
+		if change.NewFile {
+			status = "新建"
+		} else if change.DeletedFile {
+			status = "删除"
+		} else if change.RenamedFile {
+			status = "重命名"
+		}
+		diffText += fmt.Sprintf("文件: %s\n状态: %s\n差异: %s\n", change.NewPath, status, change.Diff)
 	}
 
 	cfg := config.GetConfig()
@@ -61,11 +84,11 @@ func HandleWebhook(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(review)
+	fmt.Println("Review length:", len(review))
 
 	// 评论 MR
 	noteOpt := &gitlab.CreateMergeRequestNoteOptions{
-		Body: gitlab.String("由Deepseek生成:\n" + review),
+		Body: &review,
 	}
 	_, _, err = thirdparty.GetGitlabClient().Notes.CreateMergeRequestNote(projectID, mrIID, noteOpt)
 	if err != nil {
